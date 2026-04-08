@@ -181,6 +181,11 @@ def admin_generate():
     new_license = License(key=key, plan=plan, max_users=1 if plan=='solo' else 5, email=email, company=company)
     db.session.add(new_license)
     db.session.commit()
+    if email:
+        try:
+            send_license_email(email, key, plan)
+        except Exception as e:
+            print(f"Email send failed: {e}")
     return jsonify(new_license.to_dict())
 
 @app.route('/admin/deactivate', methods=['POST'])
