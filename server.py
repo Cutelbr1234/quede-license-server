@@ -12,6 +12,11 @@ from functools import wraps
 import stripe
 from flask import Flask, request, jsonify, render_template_string
 from flask_sqlalchemy import SQLAlchemy
+try:
+    import sendgrid
+    from sendgrid.helpers.mail import Mail
+except ImportError:
+    sendgrid = None
 
 app = Flask(__name__)
 
@@ -125,20 +130,14 @@ def stripe_webhook():
     return jsonify({'received': True})
 
 def send_license_email(email, key, plan):
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
-    smtp_host = os.environ.get('SMTP_HOST', '')
-    smtp_port = int(os.environ.get('SMTP_PORT', 587))
-    smtp_user = os.environ.get('SMTP_USER', '')
-    smtp_pass = os.environ.get('SMTP_PASS', '')
-    if not smtp_host or not smtp_user:
+    sg_key = os.environ.get('SENDGRID_API_KEY', '')
+    from_email = os.environ.get('SMTP_USER', 'no-reply@quedeapp.com')
+    if not sg_key:
         print(f"[EMAIL SKIPPED] License key for {email}: {key}")
         return
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = 'Welcome to QUEDE — Your License Key Inside'
-    msg['From'] = smtp_user
-    msg['To'] = email
+    import urllib.request as urlreq
+    import json as _json
+
     plan_label = 'Solo — 1 user' if plan == 'solo' else 'Team — up to 5 users'
     body = f"""
 Welcome to QUEDE — Intelligence-Driven Cinema.
@@ -244,11 +243,20 @@ Order from Obsidian.
 
 — The QUEDE Team
 """
-    msg.attach(MIMEText(body, 'plain'))
-    with smtplib.SMTP(smtp_host, smtp_port) as server:
-        server.starttls()
-        server.login(smtp_user, smtp_pass)
-        server.sendmail(smtp_user, email, msg.as_string())
+    sg_payload = _json.dumps({
+        "personalizations": [{"to": [{"email": email}]}],
+        "from": {"email": from_email, "name": "QUEDE"},
+        "subject": "Welcome to QUEDE — Your License Key Inside",
+        "content": [{"type": "text/plain", "value": body}]
+    }).encode('utf-8')
+    req = urlreq.Request(
+        'https://api.sendgrid.com/v3/mail/send',
+        data=sg_payload,
+        headers={'Authorization': f'Bearer {sg_key}', 'Content-Type': 'application/json'},
+        method='POST'
+    )
+    with urlreq.urlopen(req, timeout=15) as resp:
+        print(f"[EMAIL SENT] {email} status: {resp.status}")
 
 @app.route('/admin/test-email', methods=['POST'])
 @admin_required
