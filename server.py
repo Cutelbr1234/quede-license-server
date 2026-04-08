@@ -346,7 +346,8 @@ body{font-family:'Outfit',sans-serif;background:#040406;color:#fff;min-height:10
 .stat-val{font-size:28px;font-weight:900;letter-spacing:-1px;}
 .stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#71717a;margin-top:4px;}
 .section{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;}
-.section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:#8b5cf6;margin-bottom:1rem;}
+.section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:#8b5cf6;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;}
+.section-count{font-size:11px;font-weight:700;background:rgba(139,92,246,0.15);color:#8b5cf6;padding:2px 8px;border-radius:4px;}
 .row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
 input,select{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 14px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;outline:none;}
 .btn{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:9px 18px;border-radius:8px;cursor:pointer;border:none;}
@@ -357,14 +358,17 @@ input,select{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255
 .table th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#71717a;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06);}
 .table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);}
 .table tr:hover td{background:rgba(255,255,255,0.02);}
+.table tr.inactive-row td{opacity:0.4;}
 .key-text{font-family:'JetBrains Mono',monospace;font-size:12px;color:#8b5cf6;}
+.inactive-row .key-text{color:#555;}
 .active-badge{background:rgba(0,196,140,0.15);color:#00C48C;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}
 .inactive-badge{background:rgba(255,68,99,0.15);color:#FF4463;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}
 .plan-solo{background:rgba(139,92,246,0.15);color:#8b5cf6;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}
 .plan-team{background:rgba(45,158,255,0.15);color:#2D9EFF;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;}
+.deactivated-header{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;color:#4b5563;padding:16px 12px 8px;border-top:1px solid rgba(255,255,255,0.06);margin-top:8px;}
 #msg{font-size:13px;color:#00C48C;margin-top:8px;min-height:20px;}
 #err{font-size:13px;color:#FF4463;margin-top:8px;min-height:20px;}
-#action-msg{font-size:13px;color:#00C48C;margin-top:8px;min-height:20px;}
+#action-msg{font-size:13px;color:#00C48C;padding:0.5rem 0;min-height:20px;}
 </style></head><body>
 <div class="header"><span class="logo">QUEDE</span><span class="badge">ADMIN</span></div>
 <div class="stats" id="stats">
@@ -380,25 +384,23 @@ input,select{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255
     <input id="gen-email" placeholder="Customer email" style="width:220px;"/>
     <input id="gen-company" placeholder="Company name (optional)" style="width:200px;"/>
     <select id="gen-plan"><option value="solo">Solo — $25.99</option><option value="team">Team — $99.99</option></select>
-    <button class="btn btn-purple" onclick="generateKey()">Generate Key</button>
+    <button class="btn btn-purple" onclick="generateKey()">Generate &amp; Email Key</button>
   </div>
   <div id="msg"></div><div id="err"></div>
 </div>
 <div class="section">
-  <div class="section-title">Deactivate / Reactivate</div>
-  <div class="row">
-    <input id="action-key" placeholder="QUEDE-XXXX-XXXX-XXXX" style="width:280px;font-family:'JetBrains Mono',monospace;"/>
-    <button class="btn btn-red" onclick="deactivateKey()">Deactivate</button>
-    <button class="btn btn-green" onclick="reactivateKey()">Reactivate</button>
-  </div>
-  <div id="action-msg"></div>
-</div>
-<div class="section">
-  <div class="section-title">All Licenses</div>
+  <div class="section-title">All Licenses <span id="active-count" class="section-count">0 active</span></div>
   <input id="search" placeholder="Search by email or key..." style="width:300px;margin-bottom:1rem;" oninput="filterTable()"/>
-  <table class="table"><thead><tr><th>Key</th><th>Plan</th><th>Email</th><th>Company</th><th>Status</th><th>Activations</th><th>Created</th><th>Action</th></tr></thead>
-  <tbody id="license-tbody"></tbody></table>
+  <table class="table">
+    <thead><tr><th>Key</th><th>Plan</th><th>Email</th><th>Company</th><th>Activations</th><th>Created</th><th>Action</th></tr></thead>
+    <tbody id="active-tbody"></tbody>
+  </table>
+  <div class="deactivated-header" id="deactivated-header" style="display:none;">Deactivated</div>
+  <table class="table" id="deactivated-table" style="display:none;">
+    <tbody id="inactive-tbody"></tbody>
+  </table>
 </div>
+<div id="action-msg"></div>
 <script>
 var ADMIN_PASS=prompt('Admin password:');
 var allLicenses=[];
@@ -420,9 +422,22 @@ async function loadLicenses(){
   renderTable(allLicenses);
 }
 function renderTable(licenses){
-  document.getElementById('license-tbody').innerHTML=licenses.map(function(l){
-    return '<tr><td class="key-text">'+l.key+'</td><td><span class="plan-'+l.plan+'">'+l.plan.toUpperCase()+'</span></td><td>'+(l.email||'—')+'</td><td>'+(l.company||'—')+'</td><td><span class="'+(l.active?'active-badge':'inactive-badge')+'">'+(l.active?'ACTIVE':'INACTIVE')+'</span></td><td>'+l.activations+'</td><td>'+(l.created_at?l.created_at.slice(0,10):'—')+'</td></tr>';
+  var active=licenses.filter(function(l){return l.active;});
+  var inactive=licenses.filter(function(l){return !l.active;});
+  document.getElementById('active-count').textContent=active.length+' active';
+  document.getElementById('active-tbody').innerHTML=active.map(function(l){
+    return '<tr><td class="key-text">'+l.key+'</td><td><span class="plan-'+l.plan+'">'+l.plan.toUpperCase()+'</span></td><td>'+(l.email||'—')+'</td><td>'+(l.company||'—')+'</td><td>'+l.activations+'</td><td>'+(l.created_at?l.created_at.slice(0,10):'—')+'</td><td><button class="btn btn-red" onclick="quickDeactivate(''+l.key+'')" style="padding:5px 12px;font-size:11px;">Deactivate</button></td></tr>';
   }).join('');
+  if(inactive.length>0){
+    document.getElementById('deactivated-header').style.display='block';
+    document.getElementById('deactivated-table').style.display='table';
+    document.getElementById('inactive-tbody').innerHTML=inactive.map(function(l){
+      return '<tr class="inactive-row"><td class="key-text">'+l.key+'</td><td><span class="plan-'+l.plan+'">'+l.plan.toUpperCase()+'</span></td><td>'+(l.email||'—')+'</td><td>'+(l.company||'—')+'</td><td>'+l.activations+'</td><td>'+(l.created_at?l.created_at.slice(0,10):'—')+'</td><td><button class="btn btn-green" onclick="quickReactivate(''+l.key+'')" style="padding:5px 12px;font-size:11px;">Reactivate</button></td></tr>';
+    }).join('');
+  } else {
+    document.getElementById('deactivated-header').style.display='none';
+    document.getElementById('deactivated-table').style.display='none';
+  }
 }
 function filterTable(){
   var q=document.getElementById('search').value.toLowerCase();
@@ -434,28 +449,20 @@ async function generateKey(){
   var plan=document.getElementById('gen-plan').value;
   if(!email){document.getElementById('err').textContent='Email required.';return;}
   var result=await api('/admin/generate','POST',{email,company,plan});
-  if(result.key){document.getElementById('msg').textContent='Generated: '+result.key+' — for '+email;document.getElementById('err').textContent='';loadStats();loadLicenses();}
+  if(result.key){document.getElementById('msg').textContent='Generated: '+result.key+' — welcome email sent to '+email;document.getElementById('err').textContent='';loadStats();loadLicenses();}
   else{document.getElementById('err').textContent=result.error||'Failed.';}
 }
-async function deleteKey(key){
-  if(!confirm('Permanently delete key: '+key+'? This cannot be undone.')) return;
-  var r=await api('/admin/delete','POST',{key});
-  document.getElementById('action-msg').textContent=r.ok?'Deleted: '+key:(r.error||'Failed.');
-  loadStats();loadLicenses();
-}
-async function deactivateKey(){
-  var key=document.getElementById('action-key').value.trim().toUpperCase();
-  if(!key) return;
+async function quickDeactivate(key){
+  if(!confirm('Deactivate '+key+'? The customer will lose access immediately.')) return;
   var r=await api('/admin/deactivate','POST',{key});
   document.getElementById('action-msg').textContent=r.ok?'Deactivated: '+key:(r.error||'Failed.');
-  loadLicenses();
+  loadStats();loadLicenses();
 }
-async function reactivateKey(){
-  var key=document.getElementById('action-key').value.trim().toUpperCase();
-  if(!key) return;
+async function quickReactivate(key){
+  if(!confirm('Reactivate '+key+'?')) return;
   var r=await api('/admin/reactivate','POST',{key});
   document.getElementById('action-msg').textContent=r.ok?'Reactivated: '+key:(r.error||'Failed.');
-  loadLicenses();
+  loadStats();loadLicenses();
 }
 loadStats();loadLicenses();
 </script>
