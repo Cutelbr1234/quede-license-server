@@ -136,26 +136,114 @@ def send_license_email(email, key, plan):
         print(f"[EMAIL SKIPPED] License key for {email}: {key}")
         return
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = 'Your QUEDE License Key'
+    msg['Subject'] = 'Welcome to QUEDE — Your License Key Inside'
     msg['From'] = smtp_user
     msg['To'] = email
-    plan_label = 'Solo (1 user)' if plan == 'solo' else 'Team (up to 5 users)'
-    body = f"""Thank you for purchasing QUEDE.
+    plan_label = 'Solo — 1 user' if plan == 'solo' else 'Team — up to 5 users'
+    body = f"""
+Welcome to QUEDE — Intelligence-Driven Cinema.
 
-Your license key:
+You're now part of a smarter way to organize your footage.
 
-    {key}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR LICENSE KEY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  {key}
 
 Plan: {plan_label}
 
-To activate:
-1. Download QUEDE from quedeapp.com/download
-2. Launch the app
-3. Enter your license key when prompted
+Keep this email. You will need this key to activate QUEDE.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Need help? Email support@quedeapp.com
+GETTING STARTED
 
-— The QUEDE Team"""
+Step 1 — Download QUEDE
+  https://quedeapp.com/download  [coming soon]
+
+Step 2 — Launch the app
+  Double-click the QUEDE installer and follow the setup.
+
+Step 3 — Activate
+  When prompted, enter your license key above.
+
+Step 4 — Connect your footage
+  Point QUEDE at any folder on your drive or external hard drive.
+  AI will analyze every clip, organize by shoot day, and rename
+  files using your production template — automatically.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT QUEDE DOES
+
+  ✦ Reads your footage frames using AI vision
+  ✦ Organizes clips by shoot day automatically
+  ✦ Sorts into A-Roll, B-Roll, Interview folders
+  ✦ Renames files with your production naming template
+  ✦ Everything stays on your machine — no cloud uploads
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ABOUT THE ANTHROPIC API KEY
+
+QUEDE uses Claude AI to visually analyze your footage.
+This requires a free Anthropic API key — separate from your
+QUEDE license. Here's what you need to know:
+
+Q: What is the Anthropic API key?
+A: It's a free key that gives QUEDE access to Claude AI.
+   You set it up once during the QUEDE onboarding.
+   Get yours at: https://console.anthropic.com
+
+Q: Does it cost money?
+A: Anthropic charges a small fee per clip analyzed —
+   roughly $0.001 per clip. Organizing 1,000 clips
+   costs about $1. You add credits at console.anthropic.com.
+
+Q: What if QUEDE stops analyzing my footage?
+A: Your Anthropic credits may have run out. To fix it:
+   1. Go to console.anthropic.com
+   2. Click Billing → Add credits (minimum $5)
+   3. Relaunch QUEDE — it will work immediately.
+   Your QUEDE license is NOT affected by API credits.
+
+Q: How do I know how many credits I have left?
+A: Log in to console.anthropic.com → Usage to see
+   your remaining balance at any time.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FREQUENTLY ASKED QUESTIONS
+
+Q: Can I use QUEDE on multiple computers?
+A: Solo plan: 1 computer. Team plan: up to 5 users.
+   Contact support to transfer your license.
+
+Q: Does QUEDE upload my footage anywhere?
+A: No. Your files never leave your machine. QUEDE only
+   sends small frame thumbnails to the AI for analysis.
+
+Q: What video formats does QUEDE support?
+A: MP4, MOV, MXF, AVI, MTS, M2TS, MKV, WMV, R3D, BRAW.
+
+Q: The app says my license is invalid — what do I do?
+A: Make sure you're entering the key exactly as shown above,
+   including the dashes. If the issue persists, email us.
+
+Q: How do I organize footage for a new project?
+A: Just point QUEDE at a new folder. Each session is
+   independent — no data is stored between sessions.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEED HELP?
+
+  Email: support@quedeapp.com
+  We typically respond within 24 hours.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Thank you for choosing QUEDE.
+Order from Obsidian.
+
+— The QUEDE Team
+"""
     msg.attach(MIMEText(body, 'plain'))
     with smtplib.SMTP(smtp_host, smtp_port) as server:
         server.starttls()
