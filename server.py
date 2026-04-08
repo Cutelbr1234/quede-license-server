@@ -107,26 +107,50 @@ def stripe_webhook():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
     if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
-        customer_email = session.get('customer_details', {}).get('email', '')
-        session_id = session.get('id', '')
-        line_items = stripe.checkout.Session.list_line_items(session_id)
-        plan = 'solo'
-        max_users = 1
-        for item in line_items.data:
-            if item.price.id == TEAM_PRICE_ID:
-                plan = 'team'
-                max_users = 5
-        key = generate_license_key()
-        while License.query.filter_by(key=key).first():
-            key = generate_license_key()
-        new_license = License(key=key, plan=plan, max_users=max_users, email=customer_email, stripe_session_id=session_id)
-        db.session.add(new_license)
-        db.session.commit()
         try:
-            send_license_email(customer_email, key, plan)
+            session = event['data']['object']
+            print(f"[WEBHOOK] Session keys: {list(session.keys())}")
+            # Try multiple ways to get email
+            customer_email = ''
+            if session.get('customer_details'):
+                customer_email = session['customer_details'].get('email', '')
+            if not customer_email and session.get('customer_email'):
+                customer_email = session.get('customer_email', '')
+            if not customer_email:
+                customer_email = session.get('receipt_email', '')
+            print(f"[WEBHOOK] Customer email: {customer_email}")
+            session_id = session.get('id', '')
+            print(f"[WEBHOOK] Session ID: {session_id}")
+            try:
+                line_items = stripe.checkout.Session.list_line_items(session_id)
+                plan = 'solo'
+                max_users = 1
+                for item in line_items.data:
+                    print(f"[WEBHOOK] Line item price: {item.price.id}")
+                    if item.price.id == TEAM_PRICE_ID:
+                        plan = 'team'
+                        max_users = 5
+            except Exception as e:
+                print(f"[WEBHOOK] Line items error: {e}")
+                plan = 'solo'
+                max_users = 1
+            print(f"[WEBHOOK] Plan: {plan}, Email: {customer_email}")
+            key = generate_license_key()
+            while License.query.filter_by(key=key).first():
+                key = generate_license_key()
+            new_license = License(key=key, plan=plan, max_users=max_users, email=customer_email, stripe_session_id=session_id)
+            db.session.add(new_license)
+            db.session.commit()
+            print(f"[WEBHOOK] License created: {key}")
+            try:
+                send_license_email(customer_email, key, plan)
+                print(f"[WEBHOOK] Email sent to {customer_email}")
+            except Exception as e:
+                print(f"[WEBHOOK] Email failed: {e}")
         except Exception as e:
-            print(f"Email send failed: {e}")
+            print(f"[WEBHOOK] Error: {e}")
+            import traceback
+            traceback.print_exc()
     return jsonify({'received': True})
 
 def send_license_email(email, key, plan):
