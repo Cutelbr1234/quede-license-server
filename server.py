@@ -131,7 +131,7 @@ def stripe_webhook():
 
 def send_license_email(email, key, plan):
     sg_key = os.environ.get('SENDGRID_API_KEY', '')
-    from_email = os.environ.get('SMTP_USER', 'no-reply@quedeapp.com')
+    from_email = os.environ.get('SENDGRID_FROM_EMAIL', os.environ.get('SMTP_USER', 'no-reply@quedeapp.com'))
     if not sg_key:
         print(f"[EMAIL SKIPPED] License key for {email}: {key}")
         return
