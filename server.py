@@ -91,7 +91,7 @@ def validate():
     if not license:
         return jsonify({'valid': False, 'error': 'License key not found'}), 404
     if not license.active:
-        return jsonify({'valid': False, 'error': 'License deactivated. Contact support@quedeapp.com'}), 403
+        return jsonify({'valid': False, 'error': 'License deactivated. Contact support@getquede.com'}), 403
     if license.activations == 0:
         license.activated_at = datetime.utcnow()
     license.activations += 1
@@ -131,7 +131,7 @@ def stripe_webhook():
 
 def send_license_email(email, key, plan):
     sg_key = os.environ.get('SENDGRID_API_KEY', '')
-    from_email = os.environ.get('SENDGRID_FROM_EMAIL', os.environ.get('SMTP_USER', 'no-reply@quedeapp.com'))
+    from_email = os.environ.get('SENDGRID_FROM_EMAIL', os.environ.get('SMTP_USER', 'no-reply@getquede.com'))
     if not sg_key:
         print(f"[EMAIL SKIPPED] License key for {email}: {key}")
         return
@@ -184,7 +184,7 @@ def send_license_email(email, key, plan):
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
         <span style="color:#8b5cf6;font-weight:700;font-size:13px;">Step 1</span>
-        <span style="color:#d1d5db;font-size:13px;margin-left:12px;">Download QUEDE at <a href="https://quedeapp.com/download" style="color:#8b5cf6;">quedeapp.com/download</a> <span style="color:#6b7280;">[coming soon]</span></span>
+        <span style="color:#d1d5db;font-size:13px;margin-left:12px;">Download QUEDE at <a href="https://getquede.com/download" style="color:#8b5cf6;">getquede.com/download</a> <span style="color:#6b7280;">[coming soon]</span></span>
       </td></tr>
       <tr><td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
         <span style="color:#8b5cf6;font-weight:700;font-size:13px;">Step 2</span>
@@ -223,7 +223,7 @@ def send_license_email(email, key, plan):
 
   <!-- FOOTER -->
   <tr><td style="background:rgba(0,0,0,0.3);padding:24px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.06);">
-    <p style="font-size:13px;color:#6b7280;margin:0 0 6px;">Questions? <a href="mailto:support@quedeapp.com" style="color:#8b5cf6;">support@quedeapp.com</a></p>
+    <p style="font-size:13px;color:#6b7280;margin:0 0 6px;">Questions? <a href="mailto:support@getquede.com" style="color:#8b5cf6;">support@getquede.com</a></p>
     <p style="font-size:11px;color:#4b5563;margin:0;letter-spacing:0.1em;">QUEDE — ORDER FROM OBSIDIAN</p>
   </td></tr>
 
