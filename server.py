@@ -162,6 +162,19 @@ Need help? Email support@quedeapp.com
         server.login(smtp_user, smtp_pass)
         server.sendmail(smtp_user, email, msg.as_string())
 
+@app.route('/admin/test-email', methods=['POST'])
+@admin_required
+def test_email():
+    data = request.json or {}
+    email = data.get('email', '')
+    if not email:
+        return jsonify({'error': 'No email provided'}), 400
+    try:
+        send_license_email(email, 'QUEDE-TEST-1234-ABCD', 'solo')
+        return jsonify({'ok': True, 'message': f'Test email sent to {email}'})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
 @app.route('/admin/licenses', methods=['GET'])
 @admin_required
 def admin_licenses():
