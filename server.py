@@ -139,115 +139,104 @@ def send_license_email(email, key, plan):
     import json as _json
 
     plan_label = 'Solo — 1 user' if plan == 'solo' else 'Team — up to 5 users'
-    body = f"""
-Welcome to QUEDE — Intelligence-Driven Cinema.
+    plan_price = '$25.99/year' if plan == 'solo' else '$99.99/year'
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;padding:0;background:#f4f4f8;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f8;padding:40px 0;">
+<tr><td align="center">
+<table width="580" cellpadding="0" cellspacing="0" style="background:#0c0b1a;border-radius:16px;overflow:hidden;">
 
-You're now part of a smarter way to organize your footage.
+  <!-- HEADER -->
+  <tr><td style="background:#0c0b1a;padding:36px 40px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.08);">
+    <div style="font-size:22px;font-weight:900;letter-spacing:0.4em;color:#ffffff;">QUEDE</div>
+    <div style="font-size:12px;color:#8b5cf6;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-top:4px;">Intelligence-Driven Cinema</div>
+  </td></tr>
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-YOUR LICENSE KEY
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  <!-- WELCOME -->
+  <tr><td style="padding:36px 40px 24px;">
+    <p style="font-size:24px;font-weight:800;color:#ffffff;margin:0 0 10px;letter-spacing:-0.5px;">Welcome to QUEDE.</p>
+    <p style="font-size:15px;color:#9ca3af;margin:0;line-height:1.7;font-weight:300;">You're now part of a smarter way to organize your footage. Below is everything you need to get started.</p>
+  </td></tr>
 
-  {key}
+  <!-- LICENSE KEY -->
+  <tr><td style="padding:0 40px 32px;">
+    <div style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:12px;padding:24px;text-align:center;">
+      <div style="font-size:11px;font-weight:700;color:#8b5cf6;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;">Your License Key</div>
+      <div style="font-family:'Courier New',monospace;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:0.1em;">{key}</div>
+      <div style="font-size:12px;color:#6b7280;margin-top:10px;">Plan: {plan_label}</div>
+    </div>
+    <p style="font-size:12px;color:#6b7280;text-align:center;margin:10px 0 0;">Keep this email safe — you will need this key to activate QUEDE.</p>
+  </td></tr>
 
-Plan: {plan_label}
+  <!-- INTRO PRICING BANNER -->
+  <tr><td style="padding:0 40px 32px;">
+    <div style="background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(0,196,140,0.1));border:1px solid rgba(139,92,246,0.3);border-radius:12px;padding:20px 24px;">
+      <div style="font-size:13px;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">⭐ Founder's Pricing — Locked In For Life</div>
+      <p style="font-size:13px;color:#d1d5db;margin:0;line-height:1.7;">You purchased QUEDE during our intro period. Your rate of <strong style="color:#ffffff;">{plan_price}</strong> is locked in forever — including all future updates and features. This offer expires <strong style="color:#ffffff;">July 8, 2026</strong>.</p>
+    </div>
+  </td></tr>
 
-Keep this email. You will need this key to activate QUEDE.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  <!-- GETTING STARTED -->
+  <tr><td style="padding:0 40px 32px;">
+    <div style="font-size:13px;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:16px;">Getting Started</div>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <span style="color:#8b5cf6;font-weight:700;font-size:13px;">Step 1</span>
+        <span style="color:#d1d5db;font-size:13px;margin-left:12px;">Download QUEDE at <a href="https://quedeapp.com/download" style="color:#8b5cf6;">quedeapp.com/download</a> <span style="color:#6b7280;">[coming soon]</span></span>
+      </td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <span style="color:#8b5cf6;font-weight:700;font-size:13px;">Step 2</span>
+        <span style="color:#d1d5db;font-size:13px;margin-left:12px;">Launch the installer and complete setup</span>
+      </td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <span style="color:#8b5cf6;font-weight:700;font-size:13px;">Step 3</span>
+        <span style="color:#d1d5db;font-size:13px;margin-left:12px;">Enter your license key above when prompted</span>
+      </td></tr>
+      <tr><td style="padding:10px 0;">
+        <span style="color:#8b5cf6;font-weight:700;font-size:13px;">Step 4</span>
+        <span style="color:#d1d5db;font-size:13px;margin-left:12px;">Point QUEDE at your footage folder — AI does the rest</span>
+      </td></tr>
+    </table>
+  </td></tr>
 
-GETTING STARTED
+  <!-- API KEY NOTE -->
+  <tr><td style="padding:0 40px 32px;">
+    <div style="background:rgba(255,176,32,0.08);border:1px solid rgba(255,176,32,0.2);border-radius:12px;padding:20px 24px;">
+      <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:8px;">About the Anthropic API Key</div>
+      <p style="font-size:13px;color:#d1d5db;margin:0 0 8px;line-height:1.7;">QUEDE uses Claude AI to analyze your footage. This requires a free Anthropic API key — you'll set it up during onboarding. Get yours at <a href="https://console.anthropic.com" style="color:#fbbf24;">console.anthropic.com</a></p>
+      <p style="font-size:13px;color:#d1d5db;margin:0;line-height:1.7;"><strong style="color:#ffffff;">Cost:</strong> ~$0.001 per clip. 1,000 clips costs about $1. If QUEDE stops analyzing footage, add credits at console.anthropic.com → Billing.</p>
+    </div>
+  </td></tr>
 
-Step 1 — Download QUEDE
-  https://quedeapp.com/download  [coming soon]
+  <!-- FAQ -->
+  <tr><td style="padding:0 40px 32px;">
+    <div style="font-size:13px;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:16px;">FAQ</div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;">
+      <tr><td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:#9ca3af;"><strong style="color:#e5e7eb;">Does QUEDE upload my footage?</strong><br>No. Your files never leave your machine. Only small frame thumbnails are sent to AI.</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:#9ca3af;"><strong style="color:#e5e7eb;">What formats are supported?</strong><br>MP4, MOV, MXF, AVI, MTS, M2TS, MKV, WMV, R3D, BRAW.</td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:#9ca3af;"><strong style="color:#e5e7eb;">Can I use QUEDE on multiple computers?</strong><br>Solo: 1 computer. Team: up to 5 users. Contact support to transfer your license.</td></tr>
+      <tr><td style="padding:10px 0;color:#9ca3af;"><strong style="color:#e5e7eb;">License says invalid?</strong><br>Enter the key exactly as shown above including dashes. Still not working? Email us.</td></tr>
+    </table>
+  </td></tr>
 
-Step 2 — Launch the app
-  Double-click the QUEDE installer and follow the setup.
+  <!-- FOOTER -->
+  <tr><td style="background:rgba(0,0,0,0.3);padding:24px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.06);">
+    <p style="font-size:13px;color:#6b7280;margin:0 0 6px;">Questions? <a href="mailto:support@quedeapp.com" style="color:#8b5cf6;">support@quedeapp.com</a></p>
+    <p style="font-size:11px;color:#4b5563;margin:0;letter-spacing:0.1em;">QUEDE — ORDER FROM OBSIDIAN</p>
+  </td></tr>
 
-Step 3 — Activate
-  When prompted, enter your license key above.
-
-Step 4 — Connect your footage
-  Point QUEDE at any folder on your drive or external hard drive.
-  AI will analyze every clip, organize by shoot day, and rename
-  files using your production template — automatically.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-WHAT QUEDE DOES
-
-  ✦ Reads your footage frames using AI vision
-  ✦ Organizes clips by shoot day automatically
-  ✦ Sorts into A-Roll, B-Roll, Interview folders
-  ✦ Renames files with your production naming template
-  ✦ Everything stays on your machine — no cloud uploads
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ABOUT THE ANTHROPIC API KEY
-
-QUEDE uses Claude AI to visually analyze your footage.
-This requires a free Anthropic API key — separate from your
-QUEDE license. Here's what you need to know:
-
-Q: What is the Anthropic API key?
-A: It's a free key that gives QUEDE access to Claude AI.
-   You set it up once during the QUEDE onboarding.
-   Get yours at: https://console.anthropic.com
-
-Q: Does it cost money?
-A: Anthropic charges a small fee per clip analyzed —
-   roughly $0.001 per clip. Organizing 1,000 clips
-   costs about $1. You add credits at console.anthropic.com.
-
-Q: What if QUEDE stops analyzing my footage?
-A: Your Anthropic credits may have run out. To fix it:
-   1. Go to console.anthropic.com
-   2. Click Billing → Add credits (minimum $5)
-   3. Relaunch QUEDE — it will work immediately.
-   Your QUEDE license is NOT affected by API credits.
-
-Q: How do I know how many credits I have left?
-A: Log in to console.anthropic.com → Usage to see
-   your remaining balance at any time.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FREQUENTLY ASKED QUESTIONS
-
-Q: Can I use QUEDE on multiple computers?
-A: Solo plan: 1 computer. Team plan: up to 5 users.
-   Contact support to transfer your license.
-
-Q: Does QUEDE upload my footage anywhere?
-A: No. Your files never leave your machine. QUEDE only
-   sends small frame thumbnails to the AI for analysis.
-
-Q: What video formats does QUEDE support?
-A: MP4, MOV, MXF, AVI, MTS, M2TS, MKV, WMV, R3D, BRAW.
-
-Q: The app says my license is invalid — what do I do?
-A: Make sure you're entering the key exactly as shown above,
-   including the dashes. If the issue persists, email us.
-
-Q: How do I organize footage for a new project?
-A: Just point QUEDE at a new folder. Each session is
-   independent — no data is stored between sessions.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-NEED HELP?
-
-  Email: support@quedeapp.com
-  We typically respond within 24 hours.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Thank you for choosing QUEDE.
-Order from Obsidian.
-
-— The QUEDE Team
-"""
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
     sg_payload = _json.dumps({
         "personalizations": [{"to": [{"email": email}]}],
         "from": {"email": from_email, "name": "QUEDE"},
         "subject": "Welcome to QUEDE — Your License Key Inside",
-        "content": [{"type": "text/plain", "value": body}]
+        "content": [{"type": "text/html", "value": html_body}]
     }).encode('utf-8')
     req = urlreq.Request(
         'https://api.sendgrid.com/v3/mail/send',
@@ -308,6 +297,18 @@ def admin_deactivate():
     license.active = False
     db.session.commit()
     return jsonify({'ok': True, 'key': key})
+
+@app.route('/admin/delete', methods=['POST'])
+@admin_required
+def admin_delete():
+    data = request.json or {}
+    key = data.get('key', '').strip().upper()
+    license = License.query.filter_by(key=key).first()
+    if not license:
+        return jsonify({'error': 'Not found'}), 404
+    db.session.delete(license)
+    db.session.commit()
+    return jsonify({'ok': True, 'deleted': key})
 
 @app.route('/admin/reactivate', methods=['POST'])
 @admin_required
@@ -395,7 +396,7 @@ input,select{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255
 <div class="section">
   <div class="section-title">All Licenses</div>
   <input id="search" placeholder="Search by email or key..." style="width:300px;margin-bottom:1rem;" oninput="filterTable()"/>
-  <table class="table"><thead><tr><th>Key</th><th>Plan</th><th>Email</th><th>Company</th><th>Status</th><th>Activations</th><th>Created</th></tr></thead>
+  <table class="table"><thead><tr><th>Key</th><th>Plan</th><th>Email</th><th>Company</th><th>Status</th><th>Activations</th><th>Created</th><th>Action</th></tr></thead>
   <tbody id="license-tbody"></tbody></table>
 </div>
 <script>
@@ -435,6 +436,12 @@ async function generateKey(){
   var result=await api('/admin/generate','POST',{email,company,plan});
   if(result.key){document.getElementById('msg').textContent='Generated: '+result.key+' — for '+email;document.getElementById('err').textContent='';loadStats();loadLicenses();}
   else{document.getElementById('err').textContent=result.error||'Failed.';}
+}
+async function deleteKey(key){
+  if(!confirm('Permanently delete key: '+key+'? This cannot be undone.')) return;
+  var r=await api('/admin/delete','POST',{key});
+  document.getElementById('action-msg').textContent=r.ok?'Deleted: '+key:(r.error||'Failed.');
+  loadStats();loadLicenses();
 }
 async function deactivateKey(){
   var key=document.getElementById('action-key').value.trim().toUpperCase();
