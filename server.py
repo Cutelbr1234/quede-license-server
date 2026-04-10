@@ -627,6 +627,17 @@ loadStats();loadLicenses();
 
 with app.app_context():
     db.create_all()
+    # Run migrations for new columns
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(db.text("ALTER TABLE license ADD COLUMN IF NOT EXISTS addon_audio BOOLEAN DEFAULT FALSE"))
+            conn.execute(db.text("ALTER TABLE license ADD COLUMN IF NOT EXISTS addon_proxy BOOLEAN DEFAULT FALSE"))
+            conn.execute(db.text("ALTER TABLE license ADD COLUMN IF NOT EXISTS addon_audio_subscription_id VARCHAR(200) DEFAULT ''"))
+            conn.execute(db.text("ALTER TABLE license ADD COLUMN IF NOT EXISTS addon_proxy_subscription_id VARCHAR(200) DEFAULT ''"))
+            conn.commit()
+            print("[MIGRATION] Addon columns added successfully")
+    except Exception as e:
+        print(f"[MIGRATION] {e}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
