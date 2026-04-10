@@ -31,6 +31,9 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'quede-admin-2024')
 
 SOLO_PRICE_ID = os.environ.get('STRIPE_SOLO_PRICE_ID', '')
 TEAM_PRICE_ID = os.environ.get('STRIPE_TEAM_PRICE_ID', '')
+AUDIO_PRICE_ID = os.environ.get('STRIPE_AUDIO_PRICE_ID', '')
+PROXY_PRICE_ID = os.environ.get('STRIPE_PROXY_PRICE_ID', '')
+BUNDLE_PRICE_ID = os.environ.get('STRIPE_BUNDLE_PRICE_ID', '')
 
 db = SQLAlchemy(app)
 
@@ -47,6 +50,10 @@ class License(db.Model):
     activations = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     activated_at = db.Column(db.DateTime, nullable=True)
+    addon_audio = db.Column(db.Boolean, default=False)
+    addon_proxy = db.Column(db.Boolean, default=False)
+    addon_audio_subscription_id = db.Column(db.String(200), default='')
+    addon_proxy_subscription_id = db.Column(db.String(200), default='')
 
     def to_dict(self):
         return {
@@ -59,6 +66,8 @@ class License(db.Model):
             'activations': self.activations,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'activated_at': self.activated_at.isoformat() if self.activated_at else None,
+            'addon_audio': self.addon_audio or False,
+            'addon_proxy': self.addon_proxy or False,
         }
 
 # ---- HELPERS ----
@@ -96,7 +105,7 @@ def validate():
         license.activated_at = datetime.utcnow()
     license.activations += 1
     db.session.commit()
-    return jsonify({'valid': True, 'plan': license.plan, 'max_users': license.max_users, 'company': license.company, 'email': license.email, 'key': license.key})
+    return jsonify({'valid': True, 'plan': license.plan, 'max_users': license.max_users, 'company': license.company, 'email': license.email, 'key': license.key, 'addon_audio': license.addon_audio or False, 'addon_proxy': license.addon_proxy or False})
 
 @app.route('/webhook', methods=['POST'])
 def stripe_webhook():
@@ -106,6 +115,23 @@ def stripe_webhook():
         event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+    if event['type'] == 'customer.subscription.deleted':
+        sub = event['data']['object']
+        sub_id = sub.get('id', '')
+        # Deactivate addon for this subscription
+        lic = License.query.filter_by(addon_audio_subscription_id=sub_id).first()
+        if lic:
+            lic.addon_audio = False
+            lic.addon_audio_subscription_id = ''
+            db.session.commit()
+            print(f"[WEBHOOK] Audio addon cancelled for {lic.key}")
+        lic = License.query.filter_by(addon_proxy_subscription_id=sub_id).first()
+        if lic:
+            lic.addon_proxy = False
+            lic.addon_proxy_subscription_id = ''
+            db.session.commit()
+            print(f"[WEBHOOK] Proxy addon cancelled for {lic.key}")
+
     if event['type'] == 'checkout.session.completed':
         try:
             session = event['data']['object']
@@ -138,10 +164,32 @@ def stripe_webhook():
             key = generate_license_key()
             while License.query.filter_by(key=key).first():
                 key = generate_license_key()
-            new_license = License(key=key, plan=plan, max_users=max_users, email=customer_email, stripe_session_id=session_id)
-            db.session.add(new_license)
-            db.session.commit()
-            print(f"[WEBHOOK] License created: {key}")
+            # Check if this is an addon subscription
+            addon_type = session.get('metadata', {}).get('addon', '')
+            lic_key = session.get('metadata', {}).get('license_key', '')
+            sub_id = session.get('subscription', '')
+
+            if addon_type and lic_key:
+                # This is an addon purchase
+                lic = License.query.filter_by(key=lic_key).first()
+                if lic:
+                    if addon_type in ('audio', 'bundle'):
+                        lic.addon_audio = True
+                        lic.addon_audio_subscription_id = sub_id or ''
+                    if addon_type in ('proxy', 'bundle'):
+                        lic.addon_proxy = True
+                        lic.addon_proxy_subscription_id = sub_id or ''
+                    db.session.commit()
+                    print(f"[WEBHOOK] Addon '{addon_type}' activated for {lic_key}")
+                    try:
+                        send_addon_email(lic.email, lic_key, addon_type)
+                    except Exception as e:
+                        print(f"[WEBHOOK] Addon email failed: {e}")
+            else:
+                new_license = License(key=key, plan=plan, max_users=max_users, email=customer_email, stripe_session_id=session_id)
+                db.session.add(new_license)
+                db.session.commit()
+                print(f"[WEBHOOK] License created: {key}")
             try:
                 send_license_email(customer_email, key, plan)
                 print(f"[WEBHOOK] Email sent to {customer_email}")
@@ -152,6 +200,40 @@ def stripe_webhook():
             import traceback
             traceback.print_exc()
     return jsonify({'received': True})
+
+@app.route('/subscribe', methods=['POST'])
+def create_subscription():
+    data = request.json or {}
+    license_key = data.get('license_key', '').strip().upper()
+    addon = data.get('addon', '')  # 'audio', 'proxy', or 'bundle'
+    email = data.get('email', '')
+
+    license = License.query.filter_by(key=license_key).first()
+    if not license or not license.active:
+        return jsonify({'error': 'Invalid license key'}), 400
+
+    price_map = {
+        'audio': AUDIO_PRICE_ID,
+        'proxy': PROXY_PRICE_ID,
+        'bundle': BUNDLE_PRICE_ID,
+    }
+    price_id = price_map.get(addon)
+    if not price_id:
+        return jsonify({'error': 'Invalid addon'}), 400
+
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            mode='subscription',
+            customer_email=email or license.email,
+            line_items=[{'price': price_id, 'quantity': 1}],
+            metadata={'license_key': license_key, 'addon': addon},
+            success_url='https://getquede.com?addon_success=1',
+            cancel_url='https://getquede.com?addon_cancel=1',
+        )
+        return jsonify({'checkout_url': session.url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 def send_license_email(email, key, plan):
     sg_key = os.environ.get('SENDGRID_API_KEY', '')
@@ -270,6 +352,54 @@ def send_license_email(email, key, plan):
     )
     with urlreq.urlopen(req, timeout=15) as resp:
         print(f"[EMAIL SENT] {email} status: {resp.status}")
+
+def send_addon_email(email, key, addon_type):
+    sg_key = os.environ.get('SENDGRID_API_KEY', '')
+    from_email = os.environ.get('SENDGRID_FROM_EMAIL', 'no-reply@getquede.com')
+    if not sg_key:
+        print(f"[EMAIL SKIPPED] Addon confirmation for {email}")
+        return
+    import urllib.request as urlreq
+    import json as _json
+
+    addon_names = {'audio': 'Audio Sync', 'proxy': 'Proxy Suite', 'bundle': 'Pro Bundle'}
+    addon_label = addon_names.get(addon_type, addon_type)
+
+    html_body = (
+        '<!DOCTYPE html><html><head><meta charset="utf-8"></head>'
+        '<body style="margin:0;padding:0;background:#f4f4f8;font-family:Helvetica Neue,Arial,sans-serif;">'
+        '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f8;padding:40px 0;">'
+        '<tr><td align="center">'
+        '<table width="580" cellpadding="0" cellspacing="0" style="background:#0c0b1a;border-radius:16px;overflow:hidden;">'
+        '<tr><td style="padding:36px 40px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.08);">'
+        '<div style="font-size:22px;font-weight:900;letter-spacing:0.4em;color:#ffffff;">QUEDE</div>'
+        '<div style="font-size:12px;color:#8b5cf6;font-weight:700;letter-spacing:0.2em;margin-top:4px;">ADD-ON ACTIVATED</div>'
+        '</td></tr>'
+        '<tr><td style="padding:36px 40px;">'
+        f'<p style="font-size:22px;font-weight:800;color:#ffffff;margin:0 0 10px;">Your {addon_label} is ready.</p>'
+        '<p style="font-size:15px;color:#9ca3af;margin:0;line-height:1.7;">Your add-on has been activated on license key:</p>'
+        '<div style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">'
+        f'<div style="font-family:Courier New,monospace;font-size:20px;font-weight:700;color:#ffffff;letter-spacing:0.1em;">{key}</div>'
+        '</div>'
+        '<p style="font-size:14px;color:#9ca3af;line-height:1.7;">Restart QUEDE and your new features will be unlocked automatically. '
+        'Questions? <a href="mailto:support@getquede.com" style="color:#8b5cf6;">support@getquede.com</a></p>'
+        '</td></tr>'
+        '<tr><td style="background:rgba(0,0,0,0.3);padding:20px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.06);">'
+        '<p style="font-size:11px;color:#4b5563;margin:0;">QUEDE - ORDER FROM OBSIDIAN</p>'
+        '</td></tr>'
+        '</table></td></tr></table></body></html>'
+    )
+
+    sg_payload = _json.dumps({
+        "personalizations": [{"to": [{"email": email}]}],
+        "from": {"email": from_email, "name": "QUEDE"},
+        "subject": f"QUEDE {addon_label} Activated",
+        "content": [{"type": "text/html", "value": html_body}]
+    }).encode('utf-8')
+    req = urlreq.Request('https://api.sendgrid.com/v3/mail/send', data=sg_payload,
+        headers={'Authorization': f'Bearer {sg_key}', 'Content-Type': 'application/json'}, method='POST')
+    with urlreq.urlopen(req, timeout=15) as resp:
+        print(f"[EMAIL SENT] Addon confirmation to {email} status: {resp.status}")
 
 @app.route('/admin/test-email', methods=['POST'])
 @admin_required
@@ -450,7 +580,10 @@ function renderTable(licenses){
   var inactive=licenses.filter(function(l){return !l.active;});
   document.getElementById('active-count').textContent=active.length+' active';
   document.getElementById('active-tbody').innerHTML=active.map(function(l){
-    return '<tr><td class="key-text">'+l.key+'</td><td><span class="plan-'+l.plan+'">'+l.plan.toUpperCase()+'</span></td><td>'+(l.email||'—')+'</td><td>'+(l.company||'—')+'</td><td>'+l.activations+'</td><td>'+(l.created_at?l.created_at.slice(0,10):'—')+'</td><td><button class="btn btn-red" onclick="quickDeactivate(''+l.key+'')" style="padding:5px 12px;font-size:11px;">Deactivate</button></td></tr>';
+    var addons='';
+    if(l.addon_audio) addons+='<span style="background:rgba(45,158,255,0.15);color:#2D9EFF;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-left:4px;">AUDIO</span>';
+    if(l.addon_proxy) addons+='<span style="background:rgba(0,196,140,0.15);color:#00C48C;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-left:4px;">PROXY</span>';
+    return '<tr><td class="key-text">'+l.key+'</td><td><span class="plan-'+l.plan+'">'+l.plan.toUpperCase()+'</span>'+addons+'</td><td>'+(l.email||'—')+'</td><td>'+(l.company||'—')+'</td><td>'+l.activations+'</td><td>'+(l.created_at?l.created_at.slice(0,10):'—')+'</td><td><button class="btn btn-red" onclick="quickDeactivate(\''+l.key+'\''+')" style="padding:5px 12px;font-size:11px;">Deactivate</button></td></tr>';
   }).join('');
   if(inactive.length>0){
     document.getElementById('deactivated-header').style.display='block';
