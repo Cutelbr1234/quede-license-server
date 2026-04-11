@@ -452,6 +452,25 @@ def admin_deactivate():
     db.session.commit()
     return jsonify({'ok': True, 'key': key})
 
+@app.route('/admin/toggle-addon', methods=['POST'])
+@admin_required
+def admin_toggle_addon():
+    data = request.json or {}
+    key = data.get('key', '').strip().upper()
+    addon = data.get('addon', '')  # 'audio' or 'proxy'
+    value = data.get('value', False)
+    license = License.query.filter_by(key=key).first()
+    if not license:
+        return jsonify({'error': 'Not found'}), 404
+    if addon == 'audio':
+        license.addon_audio = value
+    elif addon == 'proxy':
+        license.addon_proxy = value
+    else:
+        return jsonify({'error': 'Invalid addon'}), 400
+    db.session.commit()
+    return jsonify({'ok': True, 'key': key, 'addon': addon, 'value': value})
+
 @app.route('/admin/delete', methods=['POST'])
 @admin_required
 def admin_delete():
