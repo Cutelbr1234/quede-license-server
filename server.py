@@ -575,7 +575,25 @@ input,select{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255
 </div>
 <div id="action-msg"></div>
 <script>
-var ADMIN_PASS=prompt('Admin password:');
+var ADMIN_PASS='';
+(function(){
+  var saved = sessionStorage.getItem('quede_admin_pass');
+  if(saved){ ADMIN_PASS=saved; return; }
+  var overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;';
+  overlay.innerHTML='<div style="background:#161524;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:2rem;width:320px;text-align:center;"><div style="font-family:Outfit,sans-serif;font-size:18px;font-weight:900;letter-spacing:0.3em;color:#fff;margin-bottom:4px;">QUEDE</div><div style="font-size:12px;color:#8b5cf6;margin-bottom:1.5rem;letter-spacing:0.1em;">ADMIN</div><input id="pass-input" type="password" placeholder="Admin password" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;color:#fff;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:12px;"/><button onclick="submitPass()" style="width:100%;background:#8b5cf6;color:#fff;border:none;border-radius:8px;padding:10px;font-family:Outfit,sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Enter</button><div id="pass-err" style="color:#FF4463;font-size:12px;margin-top:8px;min-height:16px;"></div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById('pass-input').addEventListener('keydown', function(e){ if(e.key==='Enter') submitPass(); });
+  window._passOverlay = overlay;
+})();
+function submitPass(){
+  var p = document.getElementById('pass-input').value;
+  if(!p){ document.getElementById('pass-err').textContent='Enter your password.'; return; }
+  ADMIN_PASS = p;
+  sessionStorage.setItem('quede_admin_pass', p);
+  document.body.removeChild(window._passOverlay);
+  loadStats(); loadLicenses();
+}
 var allLicenses=[];
 async function api(url,method,body){
   var opts={method:method||'GET',headers:{'X-Admin-Password':ADMIN_PASS,'Content-Type':'application/json'}};
