@@ -602,13 +602,13 @@ function renderTable(licenses){
     var addons='';
     if(l.addon_audio) addons+='<span style="background:rgba(45,158,255,0.15);color:#2D9EFF;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-left:4px;">AUDIO</span>';
     if(l.addon_proxy) addons+='<span style="background:rgba(0,196,140,0.15);color:#00C48C;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-left:4px;">PROXY</span>';
-    return '<tr><td class="key-text">'+l.key+'</td><td><span class="plan-'+l.plan+'">'+l.plan.toUpperCase()+'</span>'+addons+'</td><td>'+(l.email||'—')+'</td><td>'+(l.company||'—')+'</td><td>'+l.activations+'</td><td>'+(l.created_at?l.created_at.slice(0,10):'—')+'</td><td><button class="btn btn-red" onclick="quickDeactivate(\''+l.key+'\''+')" style="padding:5px 12px;font-size:11px;">Deactivate</button></td></tr>';
+    return '<tr><td class="key-text">'+l.key+'</td><td><span class="plan-'+l.plan+'">'+l.plan.toUpperCase()+'</span>'+addons+'</td><td>'+(l.email||'—')+'</td><td>'+(l.company||'—')+'</td><td>'+l.activations+'</td><td>'+(l.created_at?l.created_at.slice(0,10):'—')+'</td><td><button class="btn btn-red" onclick="quickDeactivate(this.dataset.key)" data-key="'+l.key+'" style="padding:5px 12px;font-size:11px;">Deactivate</button></td></tr>';
   }).join('');
   if(inactive.length>0){
     document.getElementById('deactivated-header').style.display='block';
     document.getElementById('deactivated-table').style.display='table';
     document.getElementById('inactive-tbody').innerHTML=inactive.map(function(l){
-      return '<tr class="inactive-row"><td class="key-text">'+l.key+'</td><td><span class="plan-'+l.plan+'">'+l.plan.toUpperCase()+'</span></td><td>'+(l.email||'—')+'</td><td>'+(l.company||'—')+'</td><td>'+l.activations+'</td><td>'+(l.created_at?l.created_at.slice(0,10):'—')+'</td><td><button class="btn btn-green" onclick="quickReactivate(''+l.key+'')" style="padding:5px 12px;font-size:11px;">Reactivate</button></td></tr>';
+      return '<tr class="inactive-row"><td class="key-text">'+l.key+'</td><td><span class="plan-'+l.plan+'">'+l.plan.toUpperCase()+'</span></td><td>'+(l.email||'—')+'</td><td>'+(l.company||'—')+'</td><td>'+l.activations+'</td><td>'+(l.created_at?l.created_at.slice(0,10):'—')+'</td><td><button class="btn btn-green" onclick="quickReactivate(this.dataset.key)" data-key="'+l.key+'" style="padding:5px 12px;font-size:11px;">Reactivate</button></td></tr>';
     }).join('');
   } else {
     document.getElementById('deactivated-header').style.display='none';
@@ -629,12 +629,14 @@ async function generateKey(){
   else{document.getElementById('err').textContent=result.error||'Failed.';}
 }
 async function quickDeactivate(key){
+  if(typeof key !== 'string') key = key.dataset ? key.dataset.key : key;
   if(!confirm('Deactivate '+key+'? The customer will lose access immediately.')) return;
   var r=await api('/admin/deactivate','POST',{key});
   document.getElementById('action-msg').textContent=r.ok?'Deactivated: '+key:(r.error||'Failed.');
   loadStats();loadLicenses();
 }
 async function quickReactivate(key){
+  if(typeof key !== 'string') key = key.dataset ? key.dataset.key : key;
   if(!confirm('Reactivate '+key+'?')) return;
   var r=await api('/admin/reactivate','POST',{key});
   document.getElementById('action-msg').textContent=r.ok?'Reactivated: '+key:(r.error||'Failed.');
